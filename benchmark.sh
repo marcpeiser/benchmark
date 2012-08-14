@@ -18,7 +18,6 @@ function requires_command() {
 
 TO_INSTALL=""
 
-echo "1"
 if [ `which apt-get >/dev/null 2>&1; echo $?` -ne 0 ]; then
   PACKAGE_MANAGER='yum'
 
@@ -34,7 +33,6 @@ else
   requires 'perl -MTime::HiRes -e 1' 'perl'
 fi
 
-echo "2"
 requires_command 'gcc'
 requires_command 'make'
 requires_command 'curl'
@@ -44,7 +42,6 @@ if [ "`whoami`" != "root" ]; then
   SUDO='sudo'
 fi
 
-echo "3"
 if [ "$TO_INSTALL" != '' ]; then
   echo "Using $PACKAGE_MANAGER to install$TO_INSTALL"
   if [ "$UPDATE" != '' ]; then
@@ -54,15 +51,13 @@ if [ "$TO_INSTALL" != '' ]; then
   $SUDO $PACKAGE_MANAGER install -y $TO_INSTALL $MANAGER_OPTS
 fi
 
-echo "4"
 PID=`cat .sb-pid 2>/dev/null`
 UNIX_BENCH_VERSION='5.1.3'
 UNIX_BENCH_DIR=UnixBench-$UNIX_BENCH_VERSION
 IOPING_VERSION=0.6
 IOPING_DIR=ioping-$IOPING_VERSION
-UPLOAD_ENDPOINT='http://promozor.com/uploads.text'
+#UPLOAD_ENDPOINT='http://promozor.com/uploads.text'
 
-echo "5"
 if [ ! -f $IOPING_DIR ] ; then
   if [ ! -f ioping-$IOPING_VERSION.tar.gz ] ; then
     wget -q https://github.com/nerens/Benchmark/raw/master/ioping-$IOPING_VERSION.tar.gz
@@ -70,7 +65,6 @@ if [ ! -f $IOPING_DIR ] ; then
   tar -xzf ioping-$IOPING_VERSION.tar.gz
 fi
 
-echo "6"
 if [ -e "`pwd`/.sb-pid" ] && ps -p $PID >&- ; then
   echo "Benchmark job is already running (PID: $PID)"
   exit 0
@@ -99,14 +93,14 @@ CPU Info:
 Disk space: 
 \`df --total 2>&1\`
 Free: 
-\`free 2>&1\`" > sb-output.log
+\`free 2>&1\`" > benchmark-output.log
 
 echo "Running dd I/O benchmark..."
 
-echo "dd 1Mx1k dsync: \`dd if=/dev/zero of=sb-io-test bs=1M count=1k oflag=dsync 2>&1\`" >> sb-output.log
-echo "dd 64kx16k dsync: \`dd if=/dev/zero of=sb-io-test bs=64k count=16k oflag=dsync 2>&1\`" >> sb-output.log
-echo "dd 1Mx1k fdatasync: \`dd if=/dev/zero of=sb-io-test bs=1M count=1k conv=fdatasync 2>&1\`" >> sb-output.log
-echo "dd 64kx16k fdatasync: \`dd if=/dev/zero of=sb-io-test bs=64k count=16k conv=fdatasync 2>&1\`" >> sb-output.log
+echo "dd 1Mx1k dsync: \`dd if=/dev/zero of=sb-io-test bs=1M count=1k oflag=dsync 2>&1\`" >> benchmark-output.log
+echo "dd 64kx16k dsync: \`dd if=/dev/zero of=sb-io-test bs=64k count=16k oflag=dsync 2>&1\`" >> benchmark-output.log
+echo "dd 1Mx1k fdatasync: \`dd if=/dev/zero of=sb-io-test bs=1M count=1k conv=fdatasync 2>&1\`" >> benchmark-output.log
+echo "dd 64kx16k fdatasync: \`dd if=/dev/zero of=sb-io-test bs=64k count=16k conv=fdatasync 2>&1\`" >> benchmark-output.log
 
 rm -f sb-io-test
 
@@ -116,7 +110,7 @@ make >> sb-output.log
 echo "IOPing I/O: \`./ioping -c 10 . 2>&1 \`
 IOPing seek rate: \`./ioping -RD . 2>&1 \`
 IOPing sequential: \`./ioping -RL . 2>&1\`
-IOPing cached: \`./ioping -RC . 2>&1\`" >> ../sb-output.log
+IOPing cached: \`./ioping -RC . 2>&1\`" >> ../benchmark-output.log
 cd ..
 
 #function download_benchmark() {
@@ -143,15 +137,15 @@ cd ..
 #download_benchmark 'Softlayer, San Jose, CA, USA' 'http://speedtest.sjc01.softlayer.com/downloads/test100.zip'
 #download_benchmark 'Softlayer, Washington, DC, USA' 'http://speedtest.wdc01.softlayer.com/downloads/test100.zip'
 
-echo "Running traceroute..."
-echo "Traceroute (cachefly.cachefly.net): \`traceroute cachefly.cachefly.net 2>&1\`" >> sb-output.log
+#echo "Running traceroute..."
+#echo "Traceroute (cachefly.cachefly.net): \`traceroute cachefly.cachefly.net 2>&1\`" >> sb-output.log
 
-echo "Running ping benchmark..."
-echo "Pings (cachefly.cachefly.net): \`ping -c 10 cachefly.cachefly.net 2>&1\`" >> sb-output.log
+#echo "Running ping benchmark..."
+#echo "Pings (cachefly.cachefly.net): \`ping -c 10 cachefly.cachefly.net 2>&1\`" >> sb-output.log
 
 echo "Running UnixBench benchmark..."
 cd $UNIX_BENCH_DIR
-./Run &>> ../sb-output.log
+./Run &>> ../benchmark-output.log
 cd ..
 
 #RESPONSE=\`curl -s -F "upload[upload_type]=unix-bench-output" -F "upload[data]=<sb-output.log" -F "upload[key]=$EMAIL|$HOST|$PLAN|$COST" $UPLOAD_ENDPOINT\`
@@ -166,7 +160,7 @@ EOF
 
 chmod u+x run-upload.sh
 
-#rm -f sb-script.log
+rm -f sb-script.log
 #nohup ./run-upload.sh &>> sb-script.log & &>/dev/null
 
 #echo $! > .sb-pid
