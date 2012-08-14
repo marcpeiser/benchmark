@@ -56,7 +56,6 @@ UNIX_BENCH_VERSION='5.1.3'
 UNIX_BENCH_DIR=UnixBench-$UNIX_BENCH_VERSION
 IOPING_VERSION=0.6
 IOPING_DIR=ioping-$IOPING_VERSION
-#UPLOAD_ENDPOINT='http://promozor.com/uploads.text'
 
 if [ ! -f $IOPING_DIR ] ; then
   if [ ! -f ioping-$IOPING_VERSION.tar.gz ] ; then
@@ -92,6 +91,7 @@ echo "You can log out/Ctrl-C any time while this is happening (it's running thro
 echo "Checking server stats..."
 echo "Distro:
 \`cat /etc/issue 2>&1\`
+\`cat /etc/redhat-release 2>&1\`
 CPU Info:
 \`cat /proc/cpuinfo 2>&1\`
 Disk space: 
@@ -110,7 +110,7 @@ rm -f sb-io-test
 
 echo "Running IOPing I/O benchmark..."
 cd $IOPING_DIR
-make >> sb-output.log
+make >> setup-output.log
 echo "IOPing I/O: \`./ioping -c 10 . 2>&1 \`
 IOPing seek rate: \`./ioping -RD . 2>&1 \`
 IOPing sequential: \`./ioping -RL . 2>&1\`
@@ -152,11 +152,7 @@ cd $UNIX_BENCH_DIR
 ./Run &>> ../benchmark-output.log
 cd ..
 
-#RESPONSE=\`curl -s -F "upload[upload_type]=unix-bench-output" -F "upload[data]=<sb-output.log" -F "upload[key]=$EMAIL|$HOST|$PLAN|$COST" $UPLOAD_ENDPOINT\`
-
-#echo "Uploading results..."
-#echo "Response: \$RESPONSE"
-#echo "Completed! Your benchmark has been queued & will be delivered in a jiffy."
+echo "Completed! Your benchmark results are in benchmark-output.log"
 kill -15 \`ps -p \$\$ -o ppid=\` &> /dev/null
 
 exit 0
@@ -165,8 +161,8 @@ EOF
 chmod u+x run-upload.sh
 
 rm -f sb-script.log
-#nohup ./run-upload.sh &>> sb-script.log & &>/dev/null
+nohup ./run-upload.sh &>> sb-script.log & &>/dev/null
 
-#echo $! > .sb-pid
+echo $! > .sb-pid
 
-#tail -f sb-script.log
+tail -f sb-script.log
