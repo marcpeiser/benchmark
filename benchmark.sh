@@ -73,6 +73,10 @@ fi
 cat > run-upload.sh << EOF
 #!/bin/bash
 
+export LANGUAGE=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
 rm -rf UnixBench
 
 if ! [ -e "`pwd`/$UNIX_BENCH_DIR" ]; then
