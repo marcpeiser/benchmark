@@ -75,3 +75,100 @@ if [ -e "`pwd`/.sb-pid" ] && ps -p $PID >&- ; then
   echo "Benchmark job is already running (PID: $PID)"
   exit 0
 fi
+
+cat > run-upload.sh << EOF
+#!/bin/bash
+
+rm -rf UnixBench
+
+if ! [ -e "`pwd`/$UNIX_BENCH_DIR" ]; then
+  echo "Getting UnixBench $UNIX_BENCH_VERSION..."
+  wget -q https://byte-unixbench.googlecode.com/files/UnixBench5.1.3.tgz
+  tar -xzf UnixBench5.1.3.tgz
+  mv UnixBench $UNIX_BENCH_DIR
+fi
+
+echo "Running Benchmark as a background task."
+echo "You can log out/Ctrl-C any time while this is happening (it's running through nohup)."
+
+echo "Checking server stats..."
+echo "Distro:
+\`cat /etc/issue 2>&1\`
+CPU Info:
+\`cat /proc/cpuinfo 2>&1\`
+Disk space: 
+\`df --total 2>&1\`
+Free: 
+\`free 2>&1\`" > sb-output.log
+
+echo "Running dd I/O benchmark..."
+
+echo "dd 1Mx1k dsync: \`dd if=/dev/zero of=sb-io-test bs=1M count=1k oflag=dsync 2>&1\`" >> sb-output.log
+echo "dd 64kx16k dsync: \`dd if=/dev/zero of=sb-io-test bs=64k count=16k oflag=dsync 2>&1\`" >> sb-output.log
+echo "dd 1Mx1k fdatasync: \`dd if=/dev/zero of=sb-io-test bs=1M count=1k conv=fdatasync 2>&1\`" >> sb-output.log
+echo "dd 64kx16k fdatasync: \`dd if=/dev/zero of=sb-io-test bs=64k count=16k conv=fdatasync 2>&1\`" >> sb-output.log
+
+rm -f sb-io-test
+
+echo "Running IOPing I/O benchmark..."
+cd $IOPING_DIR
+make >> sb-output.log
+echo "IOPing I/O: \`./ioping -c 10 . 2>&1 \`
+IOPing seek rate: \`./ioping -RD . 2>&1 \`
+IOPing sequential: \`./ioping -RL . 2>&1\`
+IOPing cached: \`./ioping -RC . 2>&1\`" >> ../sb-output.log
+cd ..
+
+#function download_benchmark() {
+#  echo "Benchmarking download from \$1 (\$2)"
+#  DOWNLOAD_SPEED=\`wget -O /dev/null \$2 2>&1 | awk '/\\/dev\\/null/ {speed=\$3 \$4} END {gsub(/\\(|\\)/,"",speed); print speed}'\`
+#  echo "Got \$DOWNLOAD_SPEED"
+#  echo "Download \$1: \$DOWNLOAD_SPEED" &>> sb-output.log
+#}
+
+#echo "Running bandwidth benchmark..."
+
+#download_benchmark 'Cachefly' 'http://cachefly.cachefly.net/100mb.test'
+#download_benchmark 'Linode, Atlanta, GA, USA' 'http://atlanta1.linode.com/100MB-atlanta.bin'
+#download_benchmark 'Linode, Dallas, TX, USA' 'http://dallas1.linode.com/100MB-dallas.bin'
+#download_benchmark 'Linode, Tokyo, JP' 'http://tokyo1.linode.com/100MB-tokyo.bin'
+#download_benchmark 'Linode, London, UK' 'http://speedtest.london.linode.com/100MB-london.bin'
+#download_benchmark 'OVH, Paris, France' 'http://proof.ovh.net/files/100Mio.dat'
+#download_benchmark 'SmartDC, Rotterdam, Netherlands' 'http://mirror.i3d.net/100mb.bin'
+#download_benchmark 'Hetzner, Nuremberg, Germany' 'http://hetzner.de/100MB.iso'
+#download_benchmark 'iiNet, Perth, WA, Australia' 'http://ftp.iinet.net.au/test100MB.dat'
+#download_benchmark 'Leaseweb, Haarlem, NL, USA' 'http://mirror.leaseweb.com/speedtest/100mb.bin'
+#download_benchmark 'Softlayer, Singapore' 'http://speedtest.sng01.softlayer.com/downloads/test100.zip'
+#download_benchmark 'Softlayer, Seattle, WA, USA' 'http://speedtest.sea01.softlayer.com/downloads/test100.zip'
+#download_benchmark 'Softlayer, San Jose, CA, USA' 'http://speedtest.sjc01.softlayer.com/downloads/test100.zip'
+#download_benchmark 'Softlayer, Washington, DC, USA' 'http://speedtest.wdc01.softlayer.com/downloads/test100.zip'
+
+echo "Running traceroute..."
+echo "Traceroute (cachefly.cachefly.net): \`traceroute cachefly.cachefly.net 2>&1\`" >> sb-output.log
+
+echo "Running ping benchmark..."
+echo "Pings (cachefly.cachefly.net): \`ping -c 10 cachefly.cachefly.net 2>&1\`" >> sb-output.log
+
+echo "Running UnixBench benchmark..."
+cd $UNIX_BENCH_DIR
+./Run &>> ../sb-output.log
+cd ..
+
+#RESPONSE=\`curl -s -F "upload[upload_type]=unix-bench-output" -F "upload[data]=<sb-output.log" -F "upload[key]=$EMAIL|$HOST|$PLAN|$COST" $UPLOAD_ENDPOINT\`
+
+#echo "Uploading results..."
+#echo "Response: \$RESPONSE"
+#echo "Completed! Your benchmark has been queued & will be delivered in a jiffy."
+kill -15 \`ps -p \$\$ -o ppid=\` &> /dev/null
+
+exit 0
+EOF
+
+chmod u+x run-upload.sh
+
+#rm -f sb-script.log
+#nohup ./run-upload.sh &>> sb-script.log & &>/dev/null
+
+#echo $! > .sb-pid
+
+#tail -f sb-script.log
